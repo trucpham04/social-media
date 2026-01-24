@@ -12,8 +12,8 @@ A Django web application.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/trucpham04/music-website
-cd music-website
+git clone https://github.com/trucpham04/social-media
+cd social-media
 ```
 
 2. Install dependencies using uv:
