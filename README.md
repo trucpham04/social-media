@@ -1,96 +1,114 @@
-# ccnlthd
+# Social Media Backend (Django)
 
-A Django web application.
+A Django web application using uv for dependency management and Docker Compose for local development.
 
 ## Prerequisites
 
-- Python 3.13 or higher
-- [uv](https://docs.astral.sh/uv/) - Fast Python package installer and resolver
+- Python 3.11 or higher
+- Docker and Docker Compose
+- pip
+- uv (https://docs.astral.sh/uv/)
 
-## Installation
+## First-time Setup
 
-1. Clone the repository:
+### 1. Clone the repository
 
-```bash
 git clone https://github.com/trucpham04/social-media
 cd social-media
-```
 
-2. Install dependencies using uv:
+### 2. Install required tools
 
-```bash
+pip install python-dotenv uv
+
+### 3. Install project dependencies with uv
+
+cd backend
 uv sync
-```
 
-## Usage
+This will create a .venv virtual environment and install dependencies from pyproject.toml and uv.lock.
 
-### Development Server
+### 4. Start the application using Docker
 
-Run the Django development server:
+cd ..
+docker compose up
 
-```bash
-uv run python manage.py runserver
-```
+The backend will be available at:
+http://localhost:8000
 
-The application will be available at `http://localhost:8000`
+## Development Workflow
+
+### Running the Backend
+
+The backend is started automatically by Docker using:
+
+uv run python manage.py runserver 0.0.0.0:8000
 
 ### Database Migrations
 
-Apply database migrations:
+Apply migrations:
 
-```bash
-uv run python manage.py migrate
-```
+docker compose exec backend uv run python manage.py migrate
 
-Create new migrations:
+Create migrations:
 
-```bash
-uv run python manage.py makemigrations
-```
+docker compose exec backend uv run python manage.py makemigrations
 
 ### Create Superuser
 
-Create an admin user:
+docker compose exec backend uv run python manage.py createsuperuser
 
-```bash
-uv run python manage.py createsuperuser
-```
+## Adding or Updating Dependencies
+
+1. Stop the backend
+
+docker compose down
+
+2. Update dependencies
+
+Edit backend/pyproject.toml
+
+3. Lock dependencies
+
+cd backend
+uv lock
+
+4. Restart Docker
+
+cd ..
+docker compose up
 
 ## Project Structure
 
-```
-ccnlthd/
-├── config/          # Django project settings
-├── db.sqlite3       # SQLite database
-├── manage.py        # Django management script
-├── main.py          # Main entry point
-├── pyproject.toml   # Project dependencies and metadata
-└── README.md        # This file
-```
+social-media/
+├── backend/
+│   ├── config/
+│   ├── manage.py
+│   ├── pyproject.toml
+│   ├── uv.lock
+│   └── .venv/
+├── docker-compose.yml
+├── .env
+└── README.md
 
-## Development
+## Useful Commands
 
-### Adding Dependencies
+Run any Django command:
 
-Add a new package:
+docker compose exec backend uv run python manage.py <command>
 
-```bash
-uv add <package-name>
-```
+View backend logs:
 
-Add a development dependency:
+docker compose logs -f backend
 
-```bash
-uv add --dev <package-name>
-```
+Stop all services:
 
-### Running Django Commands
+docker compose down
 
-Execute any Django management command with:
+## Notes
 
-```bash
-uv run python manage.py <command>
-```
+- localhost works only from the host machine
+- Inside Docker, services communicate using service names (e.g. postgres)
+- uv hardlink warnings in Docker are expected and safe to ignore
 
 ## License
 
