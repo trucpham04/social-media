@@ -383,6 +383,13 @@ docker compose up -d
 docker compose ps
 ```
 
+## Realtime Messaging
+
+- **WebSocket endpoint**: `ws://localhost:8000/ws/conversations/<conversation_id>/?token=<JWT>`
+- **REST endpoints**:
+  - `GET /api/conversations/conversations/` – danh sách conversation mà user hiện tại tham gia
+  - `GET /api/conversations/conversations/<conversation_id>/messages/` – danh sách tin nhắn trong một conversation
+
 ## License
 
 
