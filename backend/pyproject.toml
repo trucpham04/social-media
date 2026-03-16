@@ -10,4 +10,6 @@ dependencies = [
     "djangorestframework-simplejwt>=5.5.1",
     "psycopg[binary]>=3.3.2",
     "python-dotenv>=1.2.1",
+    "boto3",
+    "pillow"
 ]
