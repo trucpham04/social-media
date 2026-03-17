@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'users',
     'posts',
-    'friends',,
+    'friends',
     'channels',
     'conversations',
 ]
