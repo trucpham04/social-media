@@ -157,3 +157,10 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
+# Cấu hình thông tin hiển thị trên giao diện Swagger
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API Document',
+    'DESCRIPTION': 'Tài liệu tích hợp API cho dự án Mạng xã hội - Đồ án học phần Các công nghệ lập trình hiện đại.',
+    'VERSION': '1.0.0',
+}
