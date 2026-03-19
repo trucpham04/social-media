@@ -128,6 +128,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+    async def chat_message_edited(self, event):
+        await self.send_json(
+            {
+                "type": "message_edited",
+                "id": event["id"],
+                "conversation_id": event["conversation_id"],
+                "sender_id": event["sender_id"],
+                "content": event["content"],
+                "media_url": event["media_url"],
+                "media_type": event["media_type"],
+                "created_at": event["created_at"],
+            }
+        )
+
     async def send_json(self, content, close=False):
-        await self.send(text_data=json.dumps(content), close=close)
+        await self.send(text_data=json.dumps(content, ensure_ascii=False), close=close)
 

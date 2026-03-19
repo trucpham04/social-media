@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'posts',
     'friends',
     'channels',
-    'conversations',
+    'apps.conversations',
 ]
 
 MIDDLEWARE = [

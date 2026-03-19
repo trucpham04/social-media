@@ -1,3 +1,5 @@
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -6,36 +8,102 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
     OpenApiExample,
-    OpenApiParameter,
 )
 
 from .models import Conversation, ConversationMember, Message
 from .serializers import (
     AddMemberSerializer,
+    ConversationCreateSerializer,
     ConversationDetailSerializer,
     ConversationMemberDetailSerializer,
-    ConversationCreateSerializer,
     ConversationSerializer,
+    ConversationUpdateSerializer,
     ConversationWithJoinedAtSerializer,
+    MessageCreateSerializer,
     MessageSerializer,
+    MessageUpdateSerializer,
 )
 
-@extend_schema_view(
-    get=extend_schema(
+def _check_membership(user, conversation):
+    if not ConversationMember.objects.filter(
+        conversation=conversation, user=user
+    ).exists():
+        raise permissions.PermissionDenied(
+            "You are not a member of this conversation."
+        )
+
+
+def _broadcast_ws(conversation_id, event):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"conversation_{conversation_id}",
+        event,
+    )
+
+
+class ConversationMessagesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
         summary="Danh sách tin nhắn của cuộc hội thoại",
         description="Lấy danh sách tin nhắn trong cuộc hội thoại theo thứ tự thời gian tạo.",
         responses={200: MessageSerializer(many=True)},
-    ),
-)
-class ConversationMessagesView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = MessageSerializer
+    )
+    def get(self, request, pk):
+        conversation = get_object_or_404(Conversation, pk=pk)
+        _check_membership(request.user, conversation)
+        messages = Message.objects.filter(conversation=conversation).order_by("created_at")
+        return Response(MessageSerializer(messages, many=True).data)
 
-    def get_queryset(self):
-        conversation_id = self.kwargs["pk"]
-        return Message.objects.filter(conversation_id=conversation_id).order_by(
-            "created_at"
+    @extend_schema(
+        summary="Gửi tin nhắn trong cuộc hội thoại",
+        description="Tạo tin nhắn mới trong cuộc hội thoại. Tin nhắn sẽ được broadcast tới tất cả thành viên đang kết nối WebSocket.",
+        request=MessageCreateSerializer,
+        responses={201: MessageSerializer},
+        examples=[
+            OpenApiExample(
+                "Mẫu gửi tin nhắn text",
+                value={"content": "Xin chào mọi người!"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Mẫu gửi tin nhắn hình ảnh",
+                value={
+                    "content": "",
+                    "media_url": "https://example.com/photo.jpg",
+                    "media_type": "image",
+                },
+                request_only=True,
+            ),
+        ],
+    )
+    def post(self, request, pk):
+        conversation = get_object_or_404(Conversation, pk=pk)
+        _check_membership(request.user, conversation)
+
+        serializer = MessageCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            content=serializer.validated_data["content"],
+            media_url=serializer.validated_data.get("media_url"),
+            media_type=serializer.validated_data["media_type"],
         )
+
+        _broadcast_ws(pk, {
+            "type": "chat.message",
+            "id": message.id,
+            "conversation_id": pk,
+            "sender_id": request.user.id,
+            "content": message.content,
+            "media_url": message.media_url,
+            "media_type": message.media_type,
+            "created_at": message.created_at.isoformat(),
+        })
+
+        return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
 @extend_schema_view(
     get=extend_schema(
@@ -107,32 +175,52 @@ class ConversationView(generics.ListCreateAPIView):
         output = ConversationWithJoinedAtSerializer(membership)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
-@extend_schema_view(
-    get=extend_schema(
+class ConversationDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_conversation(self, pk, user):
+        conversation = get_object_or_404(Conversation, pk=pk)
+        _check_membership(user, conversation)
+        return conversation
+
+    @extend_schema(
         summary="Chi tiết cuộc hội thoại",
         description="Lấy thông tin chi tiết của một cuộc hội thoại. Chỉ thành viên của cuộc hội thoại mới có quyền xem.",
         responses={200: ConversationDetailSerializer},
-    ),
-    delete=extend_schema(
+    )
+    def get(self, request, pk):
+        conversation = self._get_conversation(pk, request.user)
+        return Response(ConversationDetailSerializer(conversation).data)
+
+    @extend_schema(
+        summary="Chỉnh sửa thông tin cuộc hội thoại",
+        description="Cập nhật tên hoặc loại cuộc hội thoại. Bất kỳ thành viên nào đều có quyền chỉnh sửa.",
+        request=ConversationUpdateSerializer,
+        responses={200: ConversationDetailSerializer},
+        examples=[
+            OpenApiExample(
+                "Mẫu đổi tên cuộc hội thoại",
+                value={"name": "Tên mới"},
+                request_only=True,
+            ),
+        ],
+    )
+    def patch(self, request, pk):
+        conversation = self._get_conversation(pk, request.user)
+        serializer = ConversationUpdateSerializer(conversation, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(ConversationDetailSerializer(conversation).data)
+
+    @extend_schema(
         summary="Xoá cuộc hội thoại",
         description="Xoá một cuộc hội thoại. Chỉ thành viên của cuộc hội thoại mới có quyền xoá.",
         responses={204: None},
-    ),
-)
-class ConversationDetailView(generics.RetrieveDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ConversationDetailSerializer
-    queryset = Conversation.objects.all()
-
-    def get_object(self):
-        conversation = super().get_object()
-        if not ConversationMember.objects.filter(
-            conversation=conversation, user=self.request.user
-        ).exists():
-            raise permissions.PermissionDenied(
-                "You are not a member of this conversation."
-            )
-        return conversation
+    )
+    def delete(self, request, pk):
+        conversation = self._get_conversation(pk, request.user)
+        conversation.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ConversationMembersView(APIView):
@@ -200,24 +288,11 @@ class ConversationMemberRemoveView(APIView):
     @extend_schema(
         summary="Xoá thành viên khỏi cuộc hội thoại",
         description="Xoá một thành viên khỏi cuộc hội thoại theo `user_id` trên URL path.",
-        parameters=[
-            OpenApiParameter(
-                name="user_id",
-                location=OpenApiParameter.PATH,
-                description="ID của người dùng cần xoá",
-                type=int,
-            ),
-        ],
         responses={204: None},
     )
     def delete(self, request, pk, user_id):
         conversation = get_object_or_404(Conversation, pk=pk)
-        if not ConversationMember.objects.filter(
-            conversation=conversation, user=request.user
-        ).exists():
-            raise permissions.PermissionDenied(
-                "You are not a member of this conversation."
-            )
+        _check_membership(request.user, conversation)
 
         member = get_object_or_404(
             ConversationMember,
@@ -226,3 +301,50 @@ class ConversationMemberRemoveView(APIView):
         )
         member.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MessageDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Chỉnh sửa tin nhắn",
+        description="Cập nhật nội dung tin nhắn. Chỉ người gửi mới có quyền chỉnh sửa tin nhắn của mình.",
+        request=MessageUpdateSerializer,
+        responses={200: MessageSerializer},
+        examples=[
+            OpenApiExample(
+                "Mẫu sửa nội dung tin nhắn",
+                value={"content": "Nội dung đã chỉnh sửa"},
+                request_only=True,
+            ),
+        ],
+    )
+    def patch(self, request, pk, message_id):
+        conversation = get_object_or_404(Conversation, pk=pk)
+        _check_membership(request.user, conversation)
+
+        message = get_object_or_404(Message, pk=message_id, conversation=conversation)
+        if message.sender != request.user:
+            raise permissions.PermissionDenied(
+                "Chỉ người gửi mới có quyền chỉnh sửa tin nhắn."
+            )
+
+        serializer = MessageUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        for field, value in serializer.validated_data.items():
+            setattr(message, field, value)
+        message.save(update_fields=list(serializer.validated_data.keys()))
+
+        _broadcast_ws(pk, {
+            "type": "chat.message_edited",
+            "id": message.id,
+            "conversation_id": pk,
+            "sender_id": message.sender_id,
+            "content": message.content,
+            "media_url": message.media_url,
+            "media_type": message.media_type,
+            "created_at": message.created_at.isoformat(),
+        })
+
+        return Response(MessageSerializer(message).data)
