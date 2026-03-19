@@ -163,6 +163,12 @@ CHANNEL_LAYERS = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'API Document',
     'DESCRIPTION': 'Tài liệu tích hợp API cho dự án Mạng xã hội - Đồ án học phần Các công nghệ lập trình hiện đại.',
+    'TAGS': [
+        {'name': 'users', 'description': 'Quản lý người dùng'},
+        {'name': 'posts', 'description': 'Quản lý bài viết'},
+        {'name': 'friends', 'description': 'Quản lý bạn bè'},
+        {'name': 'conversations', 'description': 'Quản lý hội thoại'},
+    ],
     'VERSION': '1.0.0',
 }
 
