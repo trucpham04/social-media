@@ -27,5 +27,5 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/posts/', include('posts.urls')),
     path('api/friends/', include('friends.urls')),
-    path('api/conversations/', include('conversations.urls')),
+    path('api/conversations/', include('apps.conversations.urls')),
 ]

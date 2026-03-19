@@ -4,8 +4,9 @@ from .views import (
     ConversationDetailView,
     ConversationView,
     ConversationMembersView,
-    ConversationMessagesView,
     ConversationMemberRemoveView,
+    ConversationMessagesView,
+    MessageDetailView,
 )
 
 app_name = "conversations"
@@ -25,6 +26,11 @@ urlpatterns = [
         "<int:pk>/messages/",
         ConversationMessagesView.as_view(),
         name="conversation-messages",
+    ),
+    path(
+        "<int:pk>/messages/<int:message_id>/",
+        MessageDetailView.as_view(),
+        name="conversation-message-detail",
     ),
     path(
         "<int:pk>/members/",

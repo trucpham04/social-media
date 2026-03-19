@@ -19,6 +19,10 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = ["name", "is_group", "member_ids"]
 
+    def create(self, validated_data):
+        validated_data.pop("member_ids", [])
+        return super().create(validated_data)
+
 class ConversationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
@@ -58,6 +62,54 @@ class ConversationMemberDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConversationMember
         fields = ["id", "user_id", "username", "email", "joined_at"]
+
+
+class MessageCreateSerializer(serializers.Serializer):
+    content = serializers.CharField(required=False, default="", allow_blank=True)
+    media_url = serializers.URLField(required=False, allow_null=True, default=None)
+    media_type = serializers.ChoiceField(
+        choices=Message.MEDIA_TYPE_CHOICES,
+        default=Message.MEDIA_TYPE_TEXT,
+    )
+
+    def validate(self, attrs):
+        media_type = attrs.get("media_type", Message.MEDIA_TYPE_TEXT)
+        content = attrs.get("content", "")
+        media_url = attrs.get("media_url")
+
+        if media_type == Message.MEDIA_TYPE_TEXT and not content.strip():
+            raise serializers.ValidationError(
+                {"content": "Nội dung không được để trống với tin nhắn dạng text."}
+            )
+        if media_type in (Message.MEDIA_TYPE_IMAGE, Message.MEDIA_TYPE_VIDEO) and not media_url:
+            raise serializers.ValidationError(
+                {"media_url": "media_url là bắt buộc với tin nhắn dạng media."}
+            )
+        return attrs
+
+
+class MessageUpdateSerializer(serializers.Serializer):
+    content = serializers.CharField(required=False, allow_blank=True)
+    media_url = serializers.URLField(required=False, allow_null=True)
+    media_type = serializers.ChoiceField(
+        choices=Message.MEDIA_TYPE_CHOICES,
+        required=False,
+    )
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("Cần ít nhất một trường để cập nhật.")
+        return attrs
+
+
+class ConversationUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Conversation
+        fields = ["name", "is_group"]
+        extra_kwargs = {
+            "name": {"required": False},
+            "is_group": {"required": False},
+        }
 
 
 class AddMemberSerializer(serializers.Serializer):
