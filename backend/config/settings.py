@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # ↑ adjust if needed so BASE_DIR points to project root
@@ -163,4 +164,9 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'API Document',
     'DESCRIPTION': 'Tài liệu tích hợp API cho dự án Mạng xã hội - Đồ án học phần Các công nghệ lập trình hiện đại.',
     'VERSION': '1.0.0',
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
