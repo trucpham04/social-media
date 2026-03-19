@@ -8,6 +8,16 @@ class ConversationSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = ["id", "name", "is_group", "created_at"]
 
+class ConversationCreateSerializer(serializers.ModelSerializer):
+    member_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=[],
+    )
+
+    class Meta:
+        model = Conversation
+        fields = ["name", "is_group", "member_ids"]
 
 class ConversationDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,12 +39,15 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
 
-class ConversationMemberSerializer(serializers.ModelSerializer):
-    conversation = ConversationSerializer(read_only=True)
+class ConversationWithJoinedAtSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="conversation.id", read_only=True)
+    name = serializers.CharField(source="conversation.name", read_only=True)
+    is_group = serializers.BooleanField(source="conversation.is_group", read_only=True)
+    created_at = serializers.DateTimeField(source="conversation.created_at", read_only=True)
 
     class Meta:
         model = ConversationMember
-        fields = ["id", "conversation", "joined_at"]
+        fields = ["id", "name", "is_group", "created_at", "joined_at"]
 
 
 class ConversationMemberDetailSerializer(serializers.ModelSerializer):
