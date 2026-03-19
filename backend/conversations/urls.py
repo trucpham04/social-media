@@ -1,14 +1,11 @@
 from django.urls import path
 
 from .views import (
-    ConversationDeleteView,
     ConversationDetailView,
-    ConversationListCreateView,
-    ConversationMemberAddView,
+    ConversationView,
+    ConversationMembersView,
+    ConversationMessagesView,
     ConversationMemberRemoveView,
-    ConversationMembersListView,
-    ConversationMessagesListView,
-    UserConversationsListView,
 )
 
 app_name = "conversations"
@@ -16,18 +13,8 @@ app_name = "conversations"
 urlpatterns = [
     path(
         "",
-        UserConversationsListView.as_view(),
-        name="user-conversations",
-    ),
-    path(
-        "list-create/",
-        ConversationListCreateView.as_view(),
-        name="conversation-list-create",
-    ),
-    path(
-        "<int:conversation_id>/messages/",
-        ConversationMessagesListView.as_view(),
-        name="conversation-messages",
+        ConversationView.as_view(),
+        name="conversation",
     ),
     path(
         "<int:pk>/",
@@ -35,24 +22,19 @@ urlpatterns = [
         name="conversation-detail",
     ),
     path(
-        "<int:pk>/delete/",
-        ConversationDeleteView.as_view(),
-        name="conversation-delete",
+        "<int:pk>/messages/",
+        ConversationMessagesView.as_view(),
+        name="conversation-messages",
     ),
     path(
         "<int:pk>/members/",
-        ConversationMembersListView.as_view(),
+        ConversationMembersView.as_view(),
         name="conversation-members",
     ),
     path(
-        "<int:pk>/members/add/",
-        ConversationMemberAddView.as_view(),
-        name="conversation-member-add",
-    ),
-    path(
-        "<int:pk>/members/<int:user_id>/remove/",
+        "<int:pk>/members/<int:user_id>/",
         ConversationMemberRemoveView.as_view(),
-        name="conversation-member-remove",
+        name="conversation-member",
     ),
 ]
 
