@@ -1,4 +1,5 @@
 from django.db.models import Q
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -16,6 +17,20 @@ from .serializers import (
 class FriendRequestCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Gửi lời mời kết bạn",
+        description="Tạo lời mời kết bạn tới user có `friend_id` và tự động tạo follow 1 chiều từ người gửi tới người nhận.",
+        request=FriendRequestCreateSerializer,
+        responses={201: FriendRequestSerializer},
+        examples=[
+            OpenApiExample(
+                "Mẫu gửi lời mời kết bạn",
+                value={"friend_id": 7},
+                request_only=True,
+            ),
+        ],
+        tags=["friends"],
+    )
     def post(self, request):
         serializer = FriendRequestCreateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -37,6 +52,12 @@ class FriendRequestCreateView(APIView):
 class ReceivedFriendRequestListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Danh sách lời mời đã nhận",
+        description="Lấy danh sách lời mời kết bạn trạng thái `pending` mà user hiện tại nhận được.",
+        responses={200: FriendRequestSerializer(many=True)},
+        tags=["friends"],
+    )
     def get(self, request):
         requests = Friend.objects.filter(friend=request.user, status=Friend.STATUS_PENDING)
         return Response(FriendRequestSerializer(requests, many=True).data)
@@ -45,6 +66,12 @@ class ReceivedFriendRequestListView(APIView):
 class SentFriendRequestListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Danh sách lời mời đã gửi",
+        description="Lấy danh sách lời mời kết bạn trạng thái `pending` mà user hiện tại đã gửi.",
+        responses={200: FriendRequestSerializer(many=True)},
+        tags=["friends"],
+    )
     def get(self, request):
         requests = Friend.objects.filter(user=request.user, status=Friend.STATUS_PENDING)
         return Response(FriendRequestSerializer(requests, many=True).data)
@@ -53,6 +80,12 @@ class SentFriendRequestListView(APIView):
 class AcceptFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Chấp nhận lời mời kết bạn",
+        description="Chuyển trạng thái lời mời từ `pending` sang `accepted`, đồng thời đảm bảo tạo follow 2 chiều nếu chưa tồn tại.",
+        responses={200: FriendRequestSerializer},
+        tags=["friends"],
+    )
     def post(self, request, request_id: int):
         friend_request = Friend.objects.filter(
             id=request_id,
@@ -81,6 +114,12 @@ class AcceptFriendRequestView(APIView):
 class RejectFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Từ chối lời mời kết bạn",
+        description="Xóa lời mời kết bạn trạng thái `pending` mà user hiện tại nhận được.",
+        responses={204: None},
+        tags=["friends"],
+    )
     def post(self, request, request_id: int):
         friend_request = Friend.objects.filter(
             id=request_id,
@@ -98,6 +137,12 @@ class RejectFriendRequestView(APIView):
 class CancelFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Hủy lời mời kết bạn",
+        description="Xóa lời mời kết bạn trạng thái `pending` mà user hiện tại đã gửi.",
+        responses={204: None},
+        tags=["friends"],
+    )
     def delete(self, request, request_id: int):
         friend_request = Friend.objects.filter(
             id=request_id,
@@ -115,6 +160,12 @@ class CancelFriendRequestView(APIView):
 class FriendListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Danh sách bạn bè",
+        description="Lấy danh sách quan hệ bạn bè đã `accepted`, chuẩn hóa theo user đang đăng nhập.",
+        responses={200: FriendRequestSerializer(many=True)},
+        tags=["friends"],
+    )
     def get(self, request):
         friendships = Friend.objects.filter(
             Q(user=request.user) | Q(friend=request.user),
@@ -146,6 +197,12 @@ class FriendListView(APIView):
 class UnfriendView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Hủy kết bạn",
+        description="Xóa quan hệ bạn bè đã `accepted` với `user_id` trên path và xóa follow theo chiều user hiện tại -> target user.",
+        responses={204: None},
+        tags=["friends"],
+    )
     def delete(self, request, user_id: int):
         friendship = Friend.objects.filter(
             Q(user=request.user, friend_id=user_id) | Q(user_id=user_id, friend=request.user),
@@ -168,6 +225,20 @@ class UnfriendView(APIView):
 class FollowCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Follow người dùng",
+        description="Tạo quan hệ follow 1 chiều từ user hiện tại tới `followed_id`.",
+        request=FollowCreateSerializer,
+        responses={201: FollowSerializer},
+        examples=[
+            OpenApiExample(
+                "Mẫu follow user",
+                value={"followed_id": 7},
+                request_only=True,
+            ),
+        ],
+        tags=["friends"],
+    )
     def post(self, request):
         serializer = FollowCreateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -182,6 +253,12 @@ class FollowCreateView(APIView):
 class FollowingListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Danh sách đang follow",
+        description="Lấy danh sách user mà người dùng hiện tại đang follow.",
+        responses={200: FollowSerializer(many=True)},
+        tags=["friends"],
+    )
     def get(self, request):
         follows = Follow.objects.filter(follower=request.user)
         return Response(FollowSerializer(follows, many=True).data)
@@ -190,6 +267,12 @@ class FollowingListView(APIView):
 class FollowerListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Danh sách followers",
+        description="Lấy danh sách user đang follow người dùng hiện tại.",
+        responses={200: FollowSerializer(many=True)},
+        tags=["friends"],
+    )
     def get(self, request):
         follows = Follow.objects.filter(followed=request.user)
         return Response(FollowSerializer(follows, many=True).data)
@@ -198,6 +281,12 @@ class FollowerListView(APIView):
 class UnfollowView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Bỏ follow",
+        description="Xóa quan hệ follow từ user hiện tại tới `user_id` trên path.",
+        responses={204: None},
+        tags=["friends"],
+    )
     def delete(self, request, user_id: int):
         follow = Follow.objects.filter(follower=request.user, followed_id=user_id).first()
 
