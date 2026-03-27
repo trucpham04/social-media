@@ -163,6 +163,8 @@ CHANNEL_LAYERS = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'API Document',
     'DESCRIPTION': 'Tài liệu tích hợp API cho dự án Mạng xã hội - Đồ án học phần Các công nghệ lập trình hiện đại.',
+    # Important for file uploads: render FileField as binary in request schema
+    'COMPONENT_SPLIT_REQUEST': True,
     'TAGS': [
         {'name': 'users', 'description': 'Quản lý người dùng'},
         {'name': 'posts', 'description': 'Quản lý bài viết'},

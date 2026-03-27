@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y build-essential libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
-RUN pip install uv
+RUN pip install uv drf-spectacular
 
 # Set working directory
 WORKDIR /app
