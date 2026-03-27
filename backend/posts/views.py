@@ -2,6 +2,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from drf_spectacular.utils import (
@@ -44,6 +45,7 @@ from .utils import delete_file_from_s3
     create=extend_schema(
         summary="Tạo bài viết",
         description="Tạo bài viết mới, có thể kèm media_file để upload lên S3.",
+        request=PostSerializer,
         examples=[
             OpenApiExample(
                 "Mẫu tạo bài viết text",
@@ -69,11 +71,13 @@ from .utils import delete_file_from_s3
     update=extend_schema(
         summary="Cập nhật toàn bộ bài viết",
         description="Chỉ chủ bài viết mới có quyền cập nhật.",
+        request=PostSerializer,
         tags=["posts"],
     ),
     partial_update=extend_schema(
         summary="Cập nhật một phần bài viết",
         description="Chỉ chủ bài viết mới có quyền cập nhật.",
+        request=PostSerializer,
         examples=[
             OpenApiExample(
                 "Mẫu cập nhật content",
@@ -96,6 +100,7 @@ class PostViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     queryset = Post.objects.all()
 
     def get_serializer_class(self):
