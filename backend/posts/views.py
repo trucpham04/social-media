@@ -4,12 +4,91 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 
 from .models import Post
 from .serializers import PostSerializer, PostListSerializer
 from .utils import delete_file_from_s3
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="Danh sách bài viết",
+        description="Lấy danh sách bài viết theo quyền xem và bộ lọc.",
+        parameters=[
+            OpenApiParameter(
+                name="visibility",
+                description="Lọc theo quyền riêng tư: public | friends | private",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="user_id",
+                description="Lọc theo tác giả bài viết",
+                required=False,
+                type=int,
+            ),
+        ],
+        tags=["posts"],
+    ),
+    retrieve=extend_schema(
+        summary="Chi tiết bài viết",
+        description="Lấy thông tin chi tiết một bài viết.",
+        tags=["posts"],
+    ),
+    create=extend_schema(
+        summary="Tạo bài viết",
+        description="Tạo bài viết mới, có thể kèm media_file để upload lên S3.",
+        examples=[
+            OpenApiExample(
+                "Mẫu tạo bài viết text",
+                value={
+                    "content": "Hello world",
+                    "media_type": "text",
+                    "visibility": "public",
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Mẫu tạo bài viết ảnh",
+                value={
+                    "content": "Ảnh mới",
+                    "media_type": "image",
+                    "visibility": "friends",
+                },
+                request_only=True,
+            ),
+        ],
+        tags=["posts"],
+    ),
+    update=extend_schema(
+        summary="Cập nhật toàn bộ bài viết",
+        description="Chỉ chủ bài viết mới có quyền cập nhật.",
+        tags=["posts"],
+    ),
+    partial_update=extend_schema(
+        summary="Cập nhật một phần bài viết",
+        description="Chỉ chủ bài viết mới có quyền cập nhật.",
+        examples=[
+            OpenApiExample(
+                "Mẫu cập nhật content",
+                value={"content": "Nội dung đã chỉnh sửa"},
+                request_only=True,
+            ),
+        ],
+        tags=["posts"],
+    ),
+    destroy=extend_schema(
+        summary="Xóa bài viết",
+        description="Xóa bài viết và media trên S3 (nếu có). Chỉ chủ bài viết được phép.",
+        tags=["posts"],
+    ),
+)
 class PostViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Post CRUD operations.
@@ -100,6 +179,11 @@ class PostViewSet(viewsets.ModelViewSet):
         return super().partial_update(request, *args, **kwargs)
 
     @action(detail=False, methods=["get"])
+    @extend_schema(
+        summary="Danh sách bài viết của tôi",
+        description="Lấy tất cả bài viết của người dùng đang đăng nhập.",
+        tags=["posts"],
+    )
     def my_posts(self, request):
         """Get all posts by the authenticated user"""
         posts = self.get_queryset().filter(user=request.user)

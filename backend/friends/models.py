@@ -28,7 +28,7 @@ class Friend(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(fields=["user", "friend"], name="unique_friend_request"),
-            models.CheckConstraint(check=~Q(user=F("friend")), name="friends_not_self"),
+            models.CheckConstraint(condition=~Q(user=F("friend")), name="friends_not_self"),
         ]
         indexes = [
             models.Index(fields=["user", "status"]),
@@ -53,7 +53,9 @@ class Follow(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(fields=["follower", "followed"], name="unique_follow_relation"),
-            models.CheckConstraint(check=~Q(follower=F("followed")), name="follows_not_self"),
+            models.CheckConstraint(
+                condition=~Q(follower=F("followed")), name="follows_not_self"
+            ),
         ]
         indexes = [
             models.Index(fields=["follower"]),
