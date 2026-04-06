@@ -8,7 +8,9 @@ User = get_user_model()
 class PostReportSerializer(serializers.ModelSerializer):
     reporter_id = serializers.IntegerField(source="reporter.id", read_only=True)
     reporter_username = serializers.CharField(source="reporter.username", read_only=True)
-    post_id = serializers.IntegerField(source="post.id", read_only=True)
+    post_id = serializers.PrimaryKeyRelatedField(
+        queryset=Post.objects.all(), source="post"
+    )
     reviewed_by_id = serializers.IntegerField(
         source="reviewed_by.id", read_only=True, allow_null=True
     )
@@ -75,7 +77,9 @@ class PostReportUpdateSerializer(serializers.ModelSerializer):
 class LikeSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
-    post_id = serializers.IntegerField(source="post.id", read_only=True)
+    post_id = serializers.PrimaryKeyRelatedField(
+        queryset=Post.objects.all(), source="post"
+    )
 
     class Meta:
         model = Like
@@ -103,7 +107,9 @@ class LikeSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
-    post_id = serializers.IntegerField(source="post.id", read_only=True)
+    post_id = serializers.PrimaryKeyRelatedField(
+        queryset=Post.objects.all(), source="post"
+    )
 
     class Meta:
         model = Comment

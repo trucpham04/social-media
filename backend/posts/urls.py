@@ -4,10 +4,11 @@ from .views import PostViewSet
 from .interaction_views import PostReportViewSet, LikeViewSet, CommentViewSet
 
 router = DefaultRouter()
-router.register(r"", PostViewSet, basename="post")
+# Prefix "" must be last: else /comments/ is routed as Post pk="comments".
 router.register(r"reports", PostReportViewSet, basename="post-report")
 router.register(r"likes", LikeViewSet, basename="like")
 router.register(r"comments", CommentViewSet, basename="comment")
+router.register(r"", PostViewSet, basename="post")
 
 urlpatterns = [
     path("", include(router.urls)),

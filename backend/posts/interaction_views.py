@@ -33,7 +33,10 @@ from .interaction_serializers import (
         examples=[
             OpenApiExample(
                 "Mẫu báo cáo bài viết",
-                value={"post": 1, "reason": "Nội dung vi phạm tiêu chuẩn cộng đồng"},
+                value={
+                    "post_id": 1,
+                    "reason": "Nội dung vi phạm tiêu chuẩn cộng đồng",
+                },
                 request_only=True,
             )
         ],
@@ -174,7 +177,7 @@ class PostReportViewSet(viewsets.ModelViewSet):
         examples=[
             OpenApiExample(
                 "Mẫu thả tim",
-                value={"post": 1, "reaction": "love"},
+                value={"post_id": 1, "reaction": "love"},
                 request_only=True,
             )
         ],
@@ -297,7 +300,7 @@ class LikeViewSet(viewsets.ModelViewSet):
         examples=[
             OpenApiExample(
                 "Mẫu tạo bình luận",
-                value={"post": 1, "content": "Bài viết hay quá!"},
+                value={"post_id": 1, "content": "Bài viết hay quá!"},
                 request_only=True,
             )
         ],
