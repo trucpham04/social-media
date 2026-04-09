@@ -1,11 +1,10 @@
-
 services:
   backend:
     environment:
       - UV_LINK_MODE=copy
     build: ./backend
     container_name: backend_social_media
-    command: uv run python manage.py runserver 0.0.0.0:8000
+    command: uv run daphne -b 0.0.0.0 -p 8000 config.asgi:application
     volumes:
       - ./backend:/app
     ports:
