@@ -188,6 +188,30 @@ class PostReportViewSet(viewsets.ModelViewSet):
         description="Lấy thông tin một reaction.",
         tags=["posts"],
     ),
+    update=extend_schema(
+        summary="Cập nhật reaction",
+        description="Cập nhật reaction của chính người dùng.",
+        examples=[
+            OpenApiExample(
+                "Mẫu cập nhật reaction (PUT)",
+                value={"reaction": "love"},
+                request_only=True,
+            )
+        ],
+        tags=["posts"],
+    ),
+    partial_update=extend_schema(
+        summary="Cập nhật một phần reaction",
+        description="Cập nhật một phần reaction của chính người dùng.",
+        examples=[
+            OpenApiExample(
+                "Mẫu cập nhật reaction (PATCH)",
+                value={"reaction": "haha"},
+                request_only=True,
+            )
+        ],
+        tags=["posts"],
+    ),
     destroy=extend_schema(
         summary="Bỏ reaction",
         description="Xóa reaction của chính người dùng.",
@@ -223,6 +247,32 @@ class LikeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set user to authenticated user"""
         serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        """
+        Treat PUT as partial update for reaction-only updates.
+        URL id already identifies the Like record; clients usually only change reaction.
+        """
+        instance = self.get_object()
+        if instance.user != request.user:
+            return Response(
+                {"detail": "You can only update your own likes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        kwargs["partial"] = True
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Only owner can partially update reaction."""
+        instance = self.get_object()
+        if instance.user != request.user:
+            return Response(
+                {"detail": "You can only update your own likes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return super().partial_update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         """Unlike a post"""
