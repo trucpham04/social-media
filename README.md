@@ -24,15 +24,18 @@ Before you begin, ensure you have the following installed:
 ```
 social-media/
 ├── backend/
-│   ├── config/          # Django project settings
-│   ├── users/            # User authentication app
-│   ├── posts/            # Posts management app
+│   ├── apps/
+│   │   ├── users/           # User authentication app
+│   │   ├── posts/           # Posts management app
+│   │   ├── conversations/   # Conversations management app
+│   │   └── friends/         # Friends management app
+│   ├── config/              # Django project settings
 │   ├── manage.py
-│   ├── pyproject.toml    # Project dependencies
-│   └── uv.lock           # Locked dependencies
-├── docker-compose.yml    # Docker services configuration
-├── .env                  # Environment variables (create from .env.example)
-├── .env.example          # Example environment variables
+│   ├── pyproject.toml       # Project dependencies
+│   └── uv.lock              # Locked dependencies
+├── docker-compose.yml       # Docker services configuration
+├── .env                     # Environment variables (create from .env.example)
+├── .env.example             # Example environment variables
 └── README.md
 ```
 
@@ -41,7 +44,7 @@ social-media/
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/trucpham04/social-media.git
 cd social-media
 ```
 
@@ -62,6 +65,7 @@ cp .env.example .env
 Edit `.env` and fill in your configuration:
 
 #### Database Configuration
+
 ```env
 POSTGRES_DB=social_media_db
 POSTGRES_USER=postgres
@@ -71,6 +75,7 @@ POSTGRES_PORT=5432
 ```
 
 #### AWS S3 Configuration
+
 To use media uploads, you need AWS S3 credentials:
 
 1. **Create an AWS Account** (if you don't have one)
@@ -85,6 +90,7 @@ To use media uploads, you need AWS S3 credentials:
    - Save the Access Key ID and Secret Access Key
 
 Update `.env` with your AWS credentials:
+
 ```env
 AWS_ACCESS_KEY_ID=your-actual-access-key-id
 AWS_SECRET_ACCESS_KEY=your-actual-secret-access-key
@@ -112,6 +118,7 @@ docker compose up
 ```
 
 This will start:
+
 - **PostgreSQL database** on port `5432`
 - **Django backend** on port `8000`
 
@@ -130,6 +137,7 @@ docker compose exec backend uv run python manage.py migrate
 ```
 
 This creates all necessary database tables including:
+
 - `users` table (user authentication)
 - `posts` table (posts with media support)
 
@@ -164,16 +172,19 @@ docker compose up -d
 ### Database Migrations
 
 **Create migrations** (after model changes):
+
 ```bash
 docker compose exec backend uv run python manage.py makemigrations
 ```
 
 **Apply migrations**:
+
 ```bash
 docker compose exec backend uv run python manage.py migrate
 ```
 
 **Create migrations for specific app**:
+
 ```bash
 docker compose exec backend uv run python manage.py makemigrations posts
 docker compose exec backend uv run python manage.py makemigrations users
@@ -218,6 +229,7 @@ docker compose down -v
 Base URL: `http://localhost:8000/api/users/`
 
 - **POST** `/register/` - Register a new user
+
   ```json
   {
     "username": "john_doe",
@@ -227,12 +239,14 @@ Base URL: `http://localhost:8000/api/users/`
   ```
 
 - **POST** `/login/` - Login and get JWT tokens
+
   ```json
   {
     "username": "john_doe",
     "password": "securepassword123"
   }
   ```
+
   Returns: `access` and `refresh` tokens
 
 - **POST** `/token/refresh/` - Refresh access token
@@ -247,14 +261,15 @@ Base URL: `http://localhost:8000/api/users/`
 Base URL: `http://localhost:8000/api/posts/`
 
 **All endpoints require authentication** (include JWT token in header):
+
 ```
 Authorization: Bearer <your-access-token>
 ```
 
 - **GET** `/` - List all posts (filtered by visibility)
   - Query params: `?visibility=public&user_id=1`
-  
 - **POST** `/` - Create a new post
+
   ```json
   {
     "content": "My first post!",
@@ -262,6 +277,7 @@ Authorization: Bearer <your-access-token>
     "visibility": "public"
   }
   ```
+
   For media upload, use `multipart/form-data`:
   - `content`: text content
   - `media_file`: image or video file
@@ -312,7 +328,8 @@ Login with your superuser credentials.
    docker compose up -d
    ```
 
-**Note**: 
+**Note**:
+
 - `docker compose up` uses the existing `uv.lock` file - no need to run `uv lock` unless dependencies change
 - If you only modify code (not dependencies), just restart: `docker compose restart backend`
 - The Dockerfile copies `uv.lock` during build, so rebuild is needed after locking new dependencies
@@ -322,6 +339,7 @@ Login with your superuser credentials.
 ### Database Connection Issues
 
 If you see connection errors:
+
 1. Ensure PostgreSQL container is running: `docker compose ps`
 2. Check `.env` file has correct database credentials
 3. Verify database is ready: `docker compose logs postgres`
@@ -329,6 +347,7 @@ If you see connection errors:
 ### Migration Errors
 
 If migrations fail:
+
 ```bash
 # Reset migrations (⚠️ deletes data)
 docker compose down -v
@@ -339,6 +358,7 @@ docker compose exec backend uv run python manage.py migrate
 ### S3 Upload Errors
 
 If media uploads fail:
+
 1. Verify AWS credentials in `.env`
 2. Check S3 bucket name and region are correct
 3. Ensure IAM user has S3 permissions
@@ -347,6 +367,7 @@ If media uploads fail:
 ### Port Already in Use
 
 If port 8000 or 5432 is already in use:
+
 1. Stop the conflicting service
 2. Or change ports in `docker-compose.yml`
 
@@ -391,5 +412,3 @@ docker compose ps
   - `GET /api/conversations/conversations/<conversation_id>/messages/` – danh sách tin nhắn trong một conversation
 
 ## License
-
-

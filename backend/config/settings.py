@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'apps.users',
-    'posts',
+    'apps.posts',
     'apps.friends',
     'channels',
     'apps.conversations',
