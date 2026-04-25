@@ -1,16 +1,19 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, Count
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
     extend_schema,
     extend_schema_view,
 )
+from rest_framework.views import APIView
+
+from apps.friends.models import Friend
 
 from .models import Post
 from .serializers import PostSerializer, PostListSerializer
@@ -193,4 +196,51 @@ class PostViewSet(viewsets.ModelViewSet):
         """Get all posts by the authenticated user"""
         posts = self.get_queryset().filter(user=request.user)
         serializer = self.get_serializer(posts, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=["get"])
+    def new_feed(self, request):
+        user = request.user
+
+        # Lấy danh sách ID bạn bè đã accepted
+        friend_pairs = Friend.objects.filter(
+            Q(user=user, status=Friend.STATUS_ACCEPTED)
+            | Q(friend=user, status=Friend.STATUS_ACCEPTED)
+        ).values_list("user_id", "friend_id")
+
+        friend_ids = {uid for pair in friend_pairs for uid in pair if uid != user.id}
+
+        # Lấy bài viết của chính user + bạn bè, sắp xếp mới nhất trước
+        posts = (
+            Post.objects.filter(Q(user=user) | Q(user_id__in=friend_ids))
+            .select_related("user")
+            .order_by("-created_at")
+        )
+
+        serializer = PostListSerializer(posts, many=True)
+        return Response(serializer.data)
+
+class PostAdvanceSearchView(APIView):
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        queryset = Post.objects.select_related("user").all()
+
+        keyword = request.query_params.get("keyword", "")
+
+        if keyword:
+            queryset = queryset.filter(
+                Q(content__icontains=keyword) | Q(user__username__icontains=keyword)
+            )
+        author_id = request.query_params.get("author_id", None)
+        if author_id:
+            queryset = queryset.filter(user_id=author_id)
+        min_likes = request.query_params.get("min_likes", None)
+        if min_likes is not None:
+            queryset = queryset.annotate(like_count=Count("likes")).filter(like_count__gte=min_likes)
+        
+
+        serializer = PostSerializer(queryset, many=True)
+
         return Response(serializer.data)
